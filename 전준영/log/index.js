@@ -1,6 +1,11 @@
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
+const crypto = require("crypto");
+
+const createHashedPassword = (password) => {
+  return crypto.createHash("sha512").update(password).digest("base64");
+};
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
@@ -38,6 +43,7 @@ app.get("/register", (req, res) => {
 
 app.post("/register", async (req, res) => {
   const user = new User(req.body);
+  user.password = createHashedPassword(user.password);
   await user.save();
   res.redirect("/");
 });
@@ -52,13 +58,16 @@ app.get("/success", (req, res) => {
 
 app.post("/login", async (req, res) => {
   const user = req.body;
+  user.password = createHashedPassword(user.password);
   console.log(await User.find({ email: user.email, password: user.password }));
   User.find({ email: user.email, password: user.password }).then((result) => {
     if (result.length == 0) {
       console.log("fail!!");
+      res.status(400);
       res.redirect("/login");
     } else {
       console.log("success!!");
+      res.status(200);
       res.redirect("/success");
     }
   });
